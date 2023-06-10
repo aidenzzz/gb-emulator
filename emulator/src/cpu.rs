@@ -1,101 +1,82 @@
-//
-struct Cpu {
-    registers: Registers,
+#![allow(dead_code)]
+struct CPU {
+    // Registers
+    reg_a: u8,
+    reg_b: u8,
+    reg_c: u8,
+    reg_d: u8,
+    reg_e: u8,
+
+    // Flags
+    fl_zero: bool,
+    fl_sub: bool,
+    fl_hc: bool,
+    fl_c: bool,
+
+    // Special Registers
+    sreg_pc: u16,
+    sreg_sp: u16,
+
+    mem_bus: [u8; 65536],
 }
 
-struct Registers {
-    a: u8,
-    f: u8,
-    b: u8,
-    c: u8,
-    d: u8,
-    e: u8,
-    h: u8,
-    l: u8
-}
+impl CPU {
+    fn new() -> CPU {
+        CPU {
+            reg_a: 0x01,
+            reg_b: 0xFF,
+            reg_c: 0x13,
+            reg_d: 0x00,
+            reg_e: 0xC1,
 
-impl Registers {
-    fn get_af(&self) -> u16 {
-        return ((self.a as u16) << 8) | self.f as u16;
-    }
+            fl_zero: false,
+            fl_sub: false,
+            fl_hc: false,
+            fl_c: false,
 
-    fn get_bc(&self) -> u16 {
-        return ((self.b as u16) << 8) | self.c as u16;
-    }
+            sreg_pc: 0x0100,
+            sreg_sp: 0xFFFE,
 
-    fn get_de(&self) -> u16 {
-        return ((self.d as u16) << 8) | self.e as u16;
-    }
-
-    fn get_hl(&self) -> u16 {
-        return ((self.h as u16) << 8) | self.l as u16;
-    }
-
-    fn set_af(&mut self, value: u16) {
-        self.a = (value >> 8) as u8;
-        self.f = (value & 0xFF) as u8;
-    }
-
-    fn set_bc(&mut self, value: u16) {
-        self.b = (value >> 8) as u8;
-        self.c = (value & 0xFF) as u8;
-    }
-
-    fn set_de(&mut self, value: u16) {
-        self.d = (value >> 8) as u8;
-        self.e = (value & 0xFF) as u8;
-    }
-
-    fn set_hl(&mut self, value: u16) {
-        self.h = (value >> 8) as u8;
-        self.l = (value & 0xFF) as u8;
-    }
-
-    fn get_flag_z(&self) -> bool {
-        return (self.f & 0x80) != 0;
-    }
-
-    fn get_flag_n(&self) -> bool {
-        return (self.f & 0x40) != 0;
-    }
-
-    fn get_flag_h(&self) -> bool {
-        return (self.f & 0x20) != 0;
-    }
-
-    fn get_flag_c(&self) -> bool {
-        return (self.f & 0x10) != 0;
-    }
-
-    fn set_flag_z(&mut self, value: bool) {
-        if value {
-            self.f |= 0x80;
-        } else {
-            self.f &= 0x7F;
+            mem_bus: [0; 65536],
         }
     }
 
-    fn set_flag_n(&mut self, value: bool) {
-        if value {
-            self.f |= 0x40;
-        } else {
-            self.f &= 0xBF;
+    fn fetch_opcode(&mut self) -> u8 {
+        let opcode = self.mem_bus[self.sreg_pc as usize];
+        self.sreg_pc += 1;
+        opcode
+    }
+
+    fn execute_instruction(&mut self, opcode: u8) {
+        match opcode {
+            0x00 => self.inst_nop(),
+            0x01 => self.inst_ld_bc_nn(),
+            0x02 => self.inst_ld_bc_a(),
+            _ => panic!("Unsupported opcode: 0x{}", opcode),
         }
     }
 
-    fn set_flag_h(&mut self, value: bool) {
-        if value {
-            self.f |= 0x20;
-        } else {
-            self.f &= 0xDF;
-        }
+    fn read_next_byte(&mut self) -> u8 {
+        let byte = self.mem_bus[self.sreg_pc as usize];
+        self.sreg_pc += 1;
+        byte
     }
 
-    fn set_flag_c(&mut self, value: bool) {
-        if value {
-            self.f |= 0x10;
-        } else {
-            self.f &= 0xEF;
-        }
+    fn inst_nop(&mut self) {
+        // do nothing
     }
+
+    fn inst_ld_bc_nn(&mut self) {
+        let imm_data = self.read_next_byte();
+        self.reg_b = imm_data;
+        let imm_data = self.read_next_byte();
+        self.reg_c = imm_data;
+    }
+
+    fn inst_ld_bc_a(&mut self) {
+        let address = (self.reg_b as u16) << 8 | self.reg_c as u16;
+        self.mem_bus[address as usize] = self.reg_a;
+    }
+
+    
 }
