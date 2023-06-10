@@ -131,4 +131,15 @@ impl CPU {
         self.mem_bus[address as usize] = self.sreg_sp as u8;
         self.mem_bus[address2 as usize] = (self.sreg_sp >> 8) as u8;
     }
+
+    fn inst_add_hl_bc(&mut self) {
+        let bc_val = (self.reg_b as u16) << 8 | self.reg_c as u16;
+        let hl_val = (self.reg_h as u16) << 8 | self.reg_l as u16;
+
+        let new_value = hl_val.wrapping_add(bc_val);
+
+        self.reg_h = (new_value << 8) as u8;
+        self.reg_l = new_value as u8;
+        // need to set the flags. also check overflow?
+    }
 }
