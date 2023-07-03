@@ -68,6 +68,8 @@ impl CPU {
         // do nothing
     }
 
+	// 8 bit arethmetic/logical instructions
+
     fn add(&mut self, val: u8) {
 		let (res, overflow) = self.reg_a.overflowing_add(val);
 		self.reg_a = res;
@@ -154,4 +156,27 @@ impl CPU {
 		self.fl_hc = false;
 		self.fl_c = false;
 	}
+
+	// 16 bit arithmetic needs to be done still
+
+	// Bit operations instructions
+
+	fn bit(&mut self, bit: u8, val: u8) {
+		self.fl_zero = (val & (1 << bit)) == 0;
+		self.fl_sub = false;
+		self.fl_hc = true;
+	}
+
+	fn res(&mut self, bit: u8, val: u8) -> u8 {
+		val & !(1 << bit)
+	}
+
+	fn set(&mut self, bit: u8, val: u8) -> u8 {
+		val | (1 << bit)
+	}
+
+	fn swap(&mut self, val: u8) -> u8 {
+		(val >> 4) | (val << 4)
+	}
+	
 }
