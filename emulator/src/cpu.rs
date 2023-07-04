@@ -68,115 +68,207 @@ impl CPU {
         // do nothing
     }
 
-	// 8 bit arethmetic/logical instructions
+    // 8 bit arethmetic/logical instructions
 
     fn add(&mut self, val: u8) {
-		let (res, overflow) = self.reg_a.overflowing_add(val);
-		self.reg_a = res;
-		self.fl_zero = self.reg_a == 0;
-		self.fl_sub = false;
-		self.fl_hc = (self.reg_a & 0x0F) + (val & 0x0F) > 0x0F;
-		self.fl_c = overflow;
-	}
+        let (res, overflow) = self.reg_a.overflowing_add(val);
+        self.reg_a = res;
+        self.fl_zero = self.reg_a == 0;
+        self.fl_sub = false;
+        self.fl_hc = (self.reg_a & 0x0F) + (val & 0x0F) > 0x0F;
+        self.fl_c = overflow;
+    }
 
-	fn adc(&mut self, val: u8) {
-		let (res, overflow) = self.reg_a.overflowing_add(val);
-		let carry = if self.fl_c { 1 } else { 0 };
-		let (res, overflow2) = res.overflowing_add(carry);
-		self.reg_a = res;
-		self.fl_zero = self.reg_a == 0;
-		self.fl_sub = false;
-		self.fl_hc = (self.reg_a & 0x0F) + (val & 0x0F) + carry > 0x0F;
-		self.fl_c = overflow || overflow2;
-	}
+    fn adc(&mut self, val: u8) {
+        let (res, overflow) = self.reg_a.overflowing_add(val);
+        let carry = if self.fl_c { 1 } else { 0 };
+        let (res, overflow2) = res.overflowing_add(carry);
+        self.reg_a = res;
+        self.fl_zero = self.reg_a == 0;
+        self.fl_sub = false;
+        self.fl_hc = (self.reg_a & 0x0F) + (val & 0x0F) + carry > 0x0F;
+        self.fl_c = overflow || overflow2;
+    }
 
-	fn and(&mut self, val: u8) {
-		self.reg_a &= val;
-		self.fl_zero = self.reg_a == 0;
-		self.fl_sub = false;
-		self.fl_hc = true;
-		self.fl_c = false;
-	}
+    fn and(&mut self, val: u8) {
+        self.reg_a &= val;
+        self.fl_zero = self.reg_a == 0;
+        self.fl_sub = false;
+        self.fl_hc = true;
+        self.fl_c = false;
+    }
 
-	fn cp(&mut self, val: u8) {
-		self.fl_zero = self.reg_a == val;
-		self.fl_sub = true;
-		self.fl_hc = (self.reg_a & 0x0F) < (val & 0x0F);
-		self.fl_c = self.reg_a < val;
-	}
+    fn cp(&mut self, val: u8) {
+        self.fl_zero = self.reg_a == val;
+        self.fl_sub = true;
+        self.fl_hc = (self.reg_a & 0x0F) < (val & 0x0F);
+        self.fl_c = self.reg_a < val;
+    }
 
-	fn dec(&mut self, val: u8) -> u8 {
-		let res = val.wrapping_sub(1);
-		self.fl_zero = res == 0;
-		self.fl_sub = true;
-		self.fl_hc = (res & 0x0F) == 0x0F;
-		res
-	}
+    fn dec(&mut self, val: u8) -> u8 {
+        let res = val.wrapping_sub(1);
+        self.fl_zero = res == 0;
+        self.fl_sub = true;
+        self.fl_hc = (res & 0x0F) == 0x0F;
+        res
+    }
 
-	fn inc(&mut self, val: u8) -> u8 {
-		let res = val.wrapping_add(1);
-		self.fl_zero = res == 0;
-		self.fl_sub = false;
-		self.fl_hc = (res & 0x0F) == 0;
-		res
-	}
+    fn inc(&mut self, val: u8) -> u8 {
+        let res = val.wrapping_add(1);
+        self.fl_zero = res == 0;
+        self.fl_sub = false;
+        self.fl_hc = (res & 0x0F) == 0;
+        res
+    }
 
-	fn or(&mut self, val: u8) {
-		self.reg_a |= val;
-		self.fl_zero = self.reg_a == 0;
-		self.fl_sub = false;
-		self.fl_hc = false;
-		self.fl_c = false;
-	}
+    fn or(&mut self, val: u8) {
+        self.reg_a |= val;
+        self.fl_zero = self.reg_a == 0;
+        self.fl_sub = false;
+        self.fl_hc = false;
+        self.fl_c = false;
+    }
 
-	fn sbc(&mut self, val: u8) {
-		let (res, overflow) = self.reg_a.overflowing_sub(val);
-		let carry = if self.fl_c { 1 } else { 0 };
-		let (res, overflow2) = res.overflowing_sub(carry);
-		self.reg_a = res;
-		self.fl_zero = self.reg_a == 0;
-		self.fl_sub = true;
-		self.fl_hc = (self.reg_a & 0x0F) < (val & 0x0F) + carry;
-		self.fl_c = overflow || overflow2;
-	}
+    fn sbc(&mut self, val: u8) {
+        let (res, overflow) = self.reg_a.overflowing_sub(val);
+        let carry = if self.fl_c { 1 } else { 0 };
+        let (res, overflow2) = res.overflowing_sub(carry);
+        self.reg_a = res;
+        self.fl_zero = self.reg_a == 0;
+        self.fl_sub = true;
+        self.fl_hc = (self.reg_a & 0x0F) < (val & 0x0F) + carry;
+        self.fl_c = overflow || overflow2;
+    }
 
-	fn sub(&mut self, val: u8) {
-		let (res, overflow) = self.reg_a.overflowing_sub(val);
-		self.reg_a = res;
-		self.fl_zero = self.reg_a == 0;
-		self.fl_sub = true;
-		self.fl_hc = (self.reg_a & 0x0F) < (val & 0x0F);
-		self.fl_c = overflow;
-	}
+    fn sub(&mut self, val: u8) {
+        let (res, overflow) = self.reg_a.overflowing_sub(val);
+        self.reg_a = res;
+        self.fl_zero = self.reg_a == 0;
+        self.fl_sub = true;
+        self.fl_hc = (self.reg_a & 0x0F) < (val & 0x0F);
+        self.fl_c = overflow;
+    }
 
-	fn xor(&mut self, val: u8) {
-		self.reg_a ^= val;
-		self.fl_zero = self.reg_a == 0;
-		self.fl_sub = false;
-		self.fl_hc = false;
-		self.fl_c = false;
-	}
+    fn xor(&mut self, val: u8) {
+        self.reg_a ^= val;
+        self.fl_zero = self.reg_a == 0;
+        self.fl_sub = false;
+        self.fl_hc = false;
+        self.fl_c = false;
+    }
 
-	// 16 bit arithmetic needs to be done still
+    // 16 bit arithmetic instructions
 
-	// Bit operations instructions
+    fn add_16(&mut self, val: u16) {
+        let res = ((self.reg_h as u16) << 8) | (self.reg_l as u16);
+        let (res, overflow) = res.overflowing_add(val);
+        self.reg_h = (res >> 8) as u8;
+        self.reg_l = res as u8;
+        self.fl_sub = false;
+        self.fl_hc = (self.reg_l & 0x0F) + (val as u8 & 0x0F) > 0x0F;
+        self.fl_c = overflow;
+    }
 
-	fn bit(&mut self, bit: u8, val: u8) {
-		self.fl_zero = (val & (1 << bit)) == 0;
-		self.fl_sub = false;
-		self.fl_hc = true;
-	}
+    fn inc_16(&mut self, val: u16) -> u16 {
+        let res = val.wrapping_add(1);
+        self.fl_zero = res == 0;
+        self.fl_sub = false;
+        self.fl_hc = (res & 0x0F) == 0;
+        res
+    }
 
-	fn res(&mut self, bit: u8, val: u8) -> u8 {
-		val & !(1 << bit)
-	}
+    fn dec_16(&mut self, val: u16) -> u16 {
+        let res = val.wrapping_sub(1);
+        self.fl_zero = res == 0;
+        self.fl_sub = true;
+        self.fl_hc = (res & 0x0F) == 0x0F;
+        res
+    }
 
-	fn set(&mut self, bit: u8, val: u8) -> u8 {
-		val | (1 << bit)
-	}
+    // Bit operations instructions
 
-	fn swap(&mut self, val: u8) -> u8 {
-		(val >> 4) | (val << 4)
-	}
-	
+    fn bit(&mut self, bit: u8, val: u8) {
+        self.fl_zero = (val & (1 << bit)) == 0;
+        self.fl_sub = false;
+        self.fl_hc = true;
+    }
+
+    fn res(&mut self, bit: u8, val: u8) -> u8 {
+        val & !(1 << bit)
+    }
+
+    fn set(&mut self, bit: u8, val: u8) -> u8 {
+        val | (1 << bit)
+    }
+
+    fn swap(&mut self, val: u8) -> u8 {
+        (val >> 4) | (val << 4)
+    }
+
+    // Bit shift instructions
+
+    fn rl(&mut self, val: u8) -> u8 {
+        let carry = if self.fl_c { 1 } else { 0 };
+        let res = (val << 1) | carry;
+        self.fl_zero = res == 0;
+        self.fl_sub = false;
+        self.fl_hc = false;
+        self.fl_c = (val & 0x80) != 0;
+        res
+    }
+
+    fn rlc(&mut self, val: u8) -> u8 {
+        let res = (val << 1) | (val >> 7);
+        self.fl_zero = res == 0;
+        self.fl_sub = false;
+        self.fl_hc = false;
+        self.fl_c = (val & 0x80) != 0;
+        res
+    }
+
+    fn rr(&mut self, val: u8) -> u8 {
+        let carry = if self.fl_c { 1 } else { 0 };
+        let res = (val >> 1) | (carry << 7);
+        self.fl_zero = res == 0;
+        self.fl_sub = false;
+        self.fl_hc = false;
+        self.fl_c = (val & 0x01) != 0;
+        res
+    }
+
+    fn rrc(&mut self, val: u8) -> u8 {
+        let res = (val >> 1) | ((val & 0x01) << 7);
+        self.fl_zero = res == 0;
+        self.fl_sub = false;
+        self.fl_hc = false;
+        self.fl_c = (val & 0x01) != 0;
+        res
+    }
+
+    fn sla(&mut self, val: u8) -> u8 {
+        let res = val << 1;
+        self.fl_zero = res == 0;
+        self.fl_sub = false;
+        self.fl_hc = false;
+        self.fl_c = (val & 0x80) != 0;
+        res
+    }
+
+    fn sra(&mut self, val: u8) -> u8 {
+        let res = (val >> 1) | (val & 0x80);
+        self.fl_zero = res == 0;
+        self.fl_sub = false;
+        self.fl_hc = false;
+        self.fl_c = (val & 0x01) != 0;
+        res
+    }
+
+    fn srl(&mut self, val: u8) -> u8 {
+        let res = val >> 1;
+        self.fl_zero = res == 0;
+        self.fl_sub = false;
+        self.fl_hc = false;
+        self.fl_c = (val & 0x01) != 0;
+        res
+    }
 }
