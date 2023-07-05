@@ -58,14 +58,30 @@ impl CPU {
         }
     }
 
+    fn stack_push(value: u16, sp: &mut u16, memory: &mut [u8]) {
+        memory[*sp as usize] = (value >> 8) as u8;
+        *sp = sp.wrapping_sub(1);
+        memory[*sp as usize] = value as u8;
+    }
+    
+    fn stack_pop(sp: &mut u16, memory: &[u8]) -> u16 {
+        *sp = sp.wrapping_add(1);
+        let lo = memory[*sp as usize] as u16;
+        *sp = sp.wrapping_add(1);
+        let hi = memory[*sp as usize] as u16;
+        (hi << 8) | lo
+    }
+
     fn read_next_byte(&mut self) -> u8 {
         let byte = self.mem_bus[self.sreg_pc as usize];
         self.sreg_pc += 1;
         byte
     }
 
-    fn inst_nop(&mut self) {
-        // do nothing
+    fn read_next_word(&mut self) -> u16 {
+        let lo = self.read_next_byte() as u16;
+        let hi = self.read_next_byte() as u16;
+        (hi << 8) | lo
     }
 
     // 8 bit arethmetic/logical instructions
@@ -270,5 +286,133 @@ impl CPU {
         self.fl_hc = false;
         self.fl_c = (val & 0x01) != 0;
         res
+    }
+
+    // Load instructions
+
+    fn load<T>(dest: &mut T, src: T)
+    where
+        T: Copy,
+    {
+        *dest = src;
+    }
+
+    // Jumps and subroutines instructions
+
+    fn jp(&mut self, addr: u16) {
+        self.sreg_pc = addr;
+    }
+
+    fn jp_cond(&mut self, cond: bool, addr: u16) {
+        if cond {
+            self.sreg_pc = addr;
+        }
+    }
+
+    fn jr(&mut self, offset: i8) {
+        self.sreg_pc = self.sreg_pc.wrapping_add(offset as u16);
+    }
+
+    fn jr_cond(&mut self, cond: bool, offset: i8) {
+        if cond {
+            self.sreg_pc = self.sreg_pc.wrapping_add(offset as u16);
+        }
+    }
+
+    fn call(&mut self, addr: u16) {
+        CPU::stack_push(self.sreg_pc + 2, &mut self.sreg_sp, &mut self.mem_bus);
+        self.sreg_pc = addr;
+    }
+
+    fn call_cond(&mut self, cond: bool, addr: u16) {
+        if cond {
+            CPU::stack_push(self.sreg_pc + 2, &mut self.sreg_sp, &mut self.mem_bus);
+            self.sreg_pc = addr;
+        }
+    }
+
+    fn ret(&mut self) {
+        self.sreg_pc = CPU::stack_pop(&mut self.sreg_sp, &mut self.mem_bus);
+    }
+
+
+    fn ret_cond(&mut self, cond: bool) {
+        if cond {
+            self.sreg_pc = CPU::stack_pop(&mut self.sreg_sp, &mut self.mem_bus);
+        }
+    }
+
+    fn rst(&mut self, addr: u16) {
+        CPU::stack_push(self.sreg_pc, &mut self.sreg_sp, &mut self.mem_bus);
+        self.sreg_pc = addr;
+    }
+
+    // INSTRUCTION SET
+
+    fn inst_nop(&mut self) {
+        // do nothing
+    }
+
+    fn inst_ld_bc_nn(&mut self) {
+        let nn = self.read_next_word();
+        self.sreg_pc += 2;
+        self.reg_b = (nn >> 8) as u8;
+        self.reg_c = nn as u8;
+    }
+
+    fn inst_ld_bc_a(&mut self) {
+        let addr = ((self.reg_b as u16) << 8) | self.reg_c as u16;
+        self.mem_bus[addr as usize] = self.reg_a;
+        self.sreg_pc += 1;
+    }
+
+    fn inst_inc_bc(&mut self) {
+        let bc = ((self.reg_b as u16) << 8) | self.reg_c as u16;
+        let res = bc.wrapping_add(1);
+        self.reg_b = (res >> 8) as u8;
+        self.reg_c = res as u8;
+        self.sreg_pc += 1;
+    }
+
+    fn inst_inc_b(&mut self) {
+        self.reg_b = self.inc(self.reg_b);
+        self.sreg_pc += 1;
+    }
+
+    fn inst_dec_b(&mut self) {
+        self.reg_b = self.dec(self.reg_b);
+        self.sreg_pc += 1;
+    }
+
+    fn inst_ld_b_n(&mut self) {
+        self.reg_b = self.read_next_byte();
+        self.sreg_pc += 1;
+    }
+
+    fn inst_rlca(&mut self) {
+        self.reg_a = self.rlc(self.reg_a);
+        self.sreg_pc += 1;
+    }
+
+    fn inst_ld_nn_sp(&mut self) {
+        let nn = self.read_next_word();
+        self.sreg_pc += 2;
+        self.mem_bus[nn as usize] = (self.sreg_sp & 0xFF) as u8;
+        self.mem_bus[(nn + 1) as usize] = (self.sreg_sp >> 8) as u8;
+    }
+
+    fn inst_add_hl_bc(&mut self) {
+        let hl = ((self.reg_h as u16) << 8) | self.reg_l as u16;
+        let bc = ((self.reg_b as u16) << 8) | self.reg_c as u16;
+        let res = hl.wrapping_add(bc);
+        self.reg_h = (res >> 8) as u8;
+        self.reg_l = res as u8;
+        self.sreg_pc += 1;
+    }
+
+    fn inst_ld_a_bc(&mut self) {
+        let addr = ((self.reg_b as u16) << 8) | self.reg_c as u16;
+        self.reg_a = self.mem_bus[addr as usize];
+        self.sreg_pc += 1;
     }
 }
